@@ -2,6 +2,7 @@ package concal
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/apognu/gocal"
@@ -16,6 +17,7 @@ type Parser struct {
 	forceHTTP11 bool
 	start       time.Time
 	end         time.Time
+	locations   map[string]*time.Location
 }
 
 // parseOpts is a function type for setting options on the Parser.
@@ -42,11 +44,22 @@ func WithEndTime(end time.Time) parseOpts {
 	}
 }
 
+// WithLocation sets the time location for the parser.
+func WithLocation(name string, location *time.Location) parseOpts {
+	return func(p *Parser) {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			p.locations[name] = location
+		}
+	}
+}
+
 // NewParser creates a new Parser instance with the given context and options.
 func NewParser(opts ...parseOpts) *Parser {
 	p := &Parser{
 		errlist:     errs.Errors{},
 		forceHTTP11: false,
+		locations:   map[string]*time.Location{"UTC": time.UTC},
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -94,10 +107,18 @@ func (p *Parser) ParseOne(ctx context.Context, s string) (events []gocal.Event, 
 			}
 		}
 	}()
+	gocal.SetTZMapper(func(s string) (*time.Location, error) {
+		s = strings.TrimSpace(s)
+		if tzid, ok := p.locations[s]; ok {
+			return tzid, nil
+		}
+		return nil, errs.Wrap(ErrInvalidLocation, errs.WithContext("location", s))
+	})
 	c := gocal.NewParser(src.Reader())
 	start, end := p.getPeriod()
 	c.Start = &start
 	c.End = &end
+
 	if err := c.Parse(); err != nil {
 		err = errs.Wrap(err, errs.WithContext("src", s))
 		p.errlist.Add(err)
