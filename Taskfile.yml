@@ -1,0 +1,59 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: prepare
+      - task: test
+      - task: govulncheck
+      - task: graph
+
+  build-all:
+    desc: Build executable binary with GoReleaser.
+    cmds:
+      - goreleaser --snapshot --skip=publish --clean
+
+  test:
+    desc: Test and lint.
+    cmds:
+      - go mod verify
+      - go test -shuffle on ./...
+      - golangci-lint-v2 run --enable gosec --timeout 10m0s ./...
+    sources:
+      - ./go.mod
+      - '**/*.go'
+
+  govulncheck:
+    desc: Check reachable vulnerabilities with latest govulncheck.
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+    sources:
+      - ./go.mod
+      - '**/*.go'
+
+  prepare:
+    desc: Prepare the module by tidying dependencies.
+    cmds:
+      - go mod tidy -v -go=1.26.10
+
+  clean:
+    desc: Initialize module and build cache, and remake go.sum file.
+    cmds:
+      - rm -f ./go.sum
+      - go clean -cache
+      - go clean -modcache
+
+  build_test:
+    desc: Build test binary with GoReleaser
+    cmds:
+      - goreleaser build --snapshot --clean
+
+  graph:
+    desc: Make grapth of dependency modules.
+    cmds:
+      - depm m --dot --dot-config dot-config.toml | dot -Tpng -o ./dependency.png
+    sources:
+      - ./go.mod
+      - '**/*.go'
+    generates:
+      - ./dependency.png
