@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrInvalidSource    = errors.New("invalid source")
 	ErrConcurrentClosed = errors.New("concurrent parser is closed")
+	ErrInvalidLocation  = errors.New("invalid location")
 )
 
 /* MIT License
