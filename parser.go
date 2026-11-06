@@ -17,6 +17,7 @@ type Parser struct {
 	forceHTTP11 bool
 	start       time.Time
 	end         time.Time
+	locAllDay   *time.Location
 	locations   map[string]*time.Location
 }
 
@@ -44,8 +45,15 @@ func WithEndTime(end time.Time) parseOpts {
 	}
 }
 
-// WithLocation sets the time location for the parser.
-func WithLocation(name string, location *time.Location) parseOpts {
+// WithLocationAllDayEvent sets the time location for all-day events.
+func WithLocationAllDayEvent(location *time.Location) parseOpts {
+	return func(p *Parser) {
+		p.locAllDay = location
+	}
+}
+
+// WithLocationMap sets the time location for the parser.
+func WithLocationMap(name string, location *time.Location) parseOpts {
 	return func(p *Parser) {
 		name = strings.TrimSpace(name)
 		if name != "" {
@@ -59,7 +67,8 @@ func NewParser(opts ...parseOpts) *Parser {
 	p := &Parser{
 		errlist:     errs.Errors{},
 		forceHTTP11: false,
-		locations:   map[string]*time.Location{"UTC": time.UTC},
+		locAllDay:   time.UTC,
+		locations:   map[string]*time.Location{},
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -97,6 +106,15 @@ func (p *Parser) ParseOne(ctx context.Context, s string) (events []gocal.Event, 
 		p.errlist.Add(err)
 		return nil, err
 	}
+	if len(p.locations) > 0 {
+		gocal.SetTZMapper(func(s string) (*time.Location, error) {
+			s = strings.TrimSpace(s)
+			if loc, ok := p.locations[s]; ok {
+				return loc, nil
+			}
+			return nil, errs.Wrap(ErrInvalidLocation, errs.WithContext("location", s))
+		})
+	}
 	defer func() {
 		if cerr := src.Close(); cerr != nil {
 			cerr = errs.Wrap(cerr, errs.WithContext("src", s))
@@ -107,17 +125,11 @@ func (p *Parser) ParseOne(ctx context.Context, s string) (events []gocal.Event, 
 			}
 		}
 	}()
-	gocal.SetTZMapper(func(s string) (*time.Location, error) {
-		s = strings.TrimSpace(s)
-		if tzid, ok := p.locations[s]; ok {
-			return tzid, nil
-		}
-		return nil, errs.Wrap(ErrInvalidLocation, errs.WithContext("location", s))
-	})
 	c := gocal.NewParser(src.Reader())
 	start, end := p.getPeriod()
 	c.Start = &start
 	c.End = &end
+	c.AllDayEventsTZ = p.locAllDay
 
 	if err := c.Parse(); err != nil {
 		err = errs.Wrap(err, errs.WithContext("src", s))
