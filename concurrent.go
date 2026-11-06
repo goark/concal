@@ -84,6 +84,18 @@ func (c *Conc) Events() <-chan gocal.Event {
 	return c.eventChan
 }
 
+// EventSlice returns a slice of gocal.Event from the Conc object. If the Conc object is nil, it returns nil.
+func (c *Conc) EventSlice() []gocal.Event {
+	if c == nil {
+		return nil
+	}
+	evts := []gocal.Event{}
+	for e := range c.Events() {
+		evts = append(evts, e)
+	}
+	return evts
+}
+
 // Close cancels ongoing parsing, waits for workers, and returns accumulated errors.
 func (c *Conc) Close() error {
 	c.cancel()
