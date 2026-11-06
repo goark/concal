@@ -4,8 +4,6 @@ import "errors"
 
 var (
 	ErrInvalidSource    = errors.New("invalid source")
-	ErrNoEvent          = errors.New("no event")
-	ErrNoEventDay       = errors.New("no event for the day")
 	ErrConcurrentClosed = errors.New("concurrent parser is closed")
 )
 
