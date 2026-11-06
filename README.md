@@ -96,7 +96,8 @@ func main() {
 
 - `WithStartTime(t)` sets the beginning of the event range.
 - `WithEndTime(t)` sets the end of the event range.
-- `WithLocation(name, location)` adds a named time location for parsing events.
+- `WithLocationAllDayEvent(location)` sets the time location for all-day events.
+- `WithLocationMap(name, location)` adds a named time location for parsing events.
 - `WithHTTP11Client(true)` forces HTTP/1.1 for URL requests.
 
 If neither range endpoint is set, the default range is 90 days from the current time. If only one endpoint is set, the other endpoint is inferred as a 90-day range. If both are set in reverse order, they are swapped.

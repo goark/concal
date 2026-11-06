@@ -17,7 +17,7 @@ func main() {
 	p := concal.NewParser(
 		concal.WithStartTime(time.Date(2026, time.November, 1, 0, 0, 0, 0, time.UTC)),
 		concal.WithEndTime(time.Date(2026, time.November, 30, 23, 59, 59, 999999999, time.UTC)),
-		concal.WithLocation("Asia/Tokyo", time.FixedZone("Asia/Tokyo", 9*60*60)),
+		concal.WithLocationAllDayEvent(time.FixedZone("Asia/Tokyo", 9*60*60)),
 	)
 	evts, err := p.ParseOne(context.Background(), "https://calendar.google.com/calendar/ical/2bk907eqjut8imoorgq1qa4olc@group.calendar.google.com/public/basic.ics")
 	// evts, err := p.ParseOne(context.Background(), "../testdata/holiday.ics")
